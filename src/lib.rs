@@ -20,7 +20,9 @@ pub use backend::{
 pub use bool::*;
 pub use ntt::{Ntt, NttBackendU64, NttInit};
 #[cfg(any(feature = "interactive_mp", feature = "non_interactive_mp"))]
-pub use shortint::{div_zero_error_flag, reset_error_flags, FheUint8};
+pub use shortint::{div_zero_error_flag, reset_error_flags, FheUint8, SeededBatchedFheUint8};
+// pub use shortint::SeededBatchedFheUint8;
+
 
 pub use decomposer::{Decomposer, DecomposerIter, DefaultDecomposer};
 
@@ -28,6 +30,7 @@ pub trait Matrix: AsRef<[Self::R]> {
     type MatElement;
     type R: Row<Element = Self::MatElement>;
 
+    /// (Rows, Cols)
     fn dimension(&self) -> (usize, usize);
 
     fn get_row(&self, row_idx: usize) -> impl Iterator<Item = &Self::MatElement> {

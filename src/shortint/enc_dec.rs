@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     bool::BoolEvaluator,
@@ -13,7 +14,7 @@ use crate::{
 /// Note that `Self.data` stores encryptions of bits in little endian (i.e least
 /// signficant bit stored at 0th index and most signficant bit stores at 7th
 /// index)
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct FheUint8<C> {
     pub(super) data: Vec<C>,
 }
@@ -70,7 +71,7 @@ impl<M: MatrixEntity + MatrixMut<MatElement = u64>> From<&SeededBatchedFheUint8<
 where
     <M as Matrix>::R: RowMut,
 {
-    /// Unseeds collection of seeded RLWE ciphertext in SeededBatchedFheUint8
+    /// Unseeds collection of seeded RLWE ciphertext in `SeededBatchedFheUint8`
     /// and returns as `Self`
     fn from(value: &SeededBatchedFheUint8<M::R, [u8; 32]>) -> Self {
         BoolEvaluator::with_local(|e| {
@@ -225,6 +226,7 @@ where
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SeededBatchedFheUint8<C, S> {
     /// Vector of Seeded RLWE ciphertexts `C`.
     ///
@@ -237,9 +239,10 @@ pub struct SeededBatchedFheUint8<C, S> {
     count: usize,
 }
 
+#[cfg(feature = "non_interactive_mp")]
 impl<K, C, S> Encryptor<[u8], SeededBatchedFheUint8<C, S>> for K
 where
-    K: Encryptor<[bool], (Vec<C>, S)>,
+    K: Encryptor<[bool], crate::NonInteractiveSeededFheBools<C, S>>,
 {
     /// Encrypt a slice of u8s of arbitray length packed into collection of
     /// seeded RLWE ciphertexts and return `SeededBatchedFheUint8`
@@ -249,7 +252,7 @@ where
             .iter()
             .flat_map(|v| (0..8).into_iter().map(|i| (((*v) >> i) & 1) == 1))
             .collect_vec();
-        let (cts, seed) = K::encrypt(&self, &bool_m);
+        let (cts, seed): (Vec<C>, S) = K::encrypt(&self, &bool_m).into();
         SeededBatchedFheUint8 {
             data: cts,
             seed,

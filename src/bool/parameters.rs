@@ -1,4 +1,5 @@
 use num_traits::{ConstZero, FromPrimitive, PrimInt};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     backend::Modulus,
@@ -78,7 +79,7 @@ impl SingleDecomposerParams for (DecompostionLogBase, DecompositionCount) {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub(crate) enum SecretKeyDistribution {
     /// Elements of secret key are sample from Gaussian distribitution with
     /// \sigma = 3.19 and \mu = 0.0
@@ -88,13 +89,13 @@ pub(crate) enum SecretKeyDistribution {
     TernaryDistribution,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) enum ParameterVariant {
     SingleParty,
     InteractiveMultiParty,
     NonInteractiveMultiParty,
 }
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub struct BoolParameters<El> {
     /// RLWE secret key distribution
     rlwe_secret_key_dist: SecretKeyDistribution,
@@ -374,14 +375,14 @@ impl<El> BoolParameters<El> {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Serialize, Deserialize, Debug)]
 pub struct DecompostionLogBase(pub(crate) usize);
 impl AsRef<usize> for DecompostionLogBase {
     fn as_ref(&self) -> &usize {
         &self.0
     }
 }
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Serialize, Deserialize, Debug)]
 pub struct DecompositionCount(pub(crate) usize);
 impl AsRef<usize> for DecompositionCount {
     fn as_ref(&self) -> &usize {
@@ -389,12 +390,11 @@ impl AsRef<usize> for DecompositionCount {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Serialize, Deserialize, Debug)]
 pub(crate) struct LweDimension(pub(crate) usize);
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Serialize, Deserialize, Debug)]
 pub(crate) struct PolynomialSize(pub(crate) usize);
-#[derive(Clone, Copy, PartialEq, Debug)]
-
+#[derive(Clone, Copy, PartialEq, Serialize, Deserialize, Debug)]
 /// T equals modulus when modulus is non-native. Otherwise T equals 0. bool is
 /// true when modulus is native, false otherwise.
 pub struct CiphertextModulus<T>(T, bool);
@@ -697,6 +697,34 @@ pub(crate) const NI_8P: BoolParameters<u64> = BoolParameters::<u64> {
     non_interactive_ui_to_s_key_switch_decomposer: Some((
         DecompostionLogBase(1),
         DecompositionCount(50),
+    )),
+    g: 5,
+    w: 10,
+    variant: ParameterVariant::NonInteractiveMultiParty,
+};
+
+/// 40 Party Non-interactive parameter set (Failuter probability: < 2^{-30} )
+pub(crate) const NI_40P: BoolParameters<u64> = BoolParameters::<u64> {
+    rlwe_secret_key_dist: SecretKeyDistribution::TernaryDistribution,
+    lwe_secret_key_dist: SecretKeyDistribution::TernaryDistribution,
+    rlwe_q: CiphertextModulus::new_non_native(18014398509404161),
+    lwe_q: CiphertextModulus::new_non_native(1 << 20),
+    br_q: 1 << 12,
+    rlwe_n: PolynomialSize(1 << 11),
+    lwe_n: LweDimension(780),
+    lwe_decomposer_params: (DecompostionLogBase(1), DecompositionCount(18)),
+    rlrg_decomposer_params: (
+        DecompostionLogBase(11),
+        (DecompositionCount(2), DecompositionCount(1)),
+    ),
+    rgrg_decomposer_params: Some((
+        DecompostionLogBase(2),
+        (DecompositionCount(19), DecompositionCount(15)),
+    )),
+    auto_decomposer_params: (DecompostionLogBase(24), DecompositionCount(1)),
+    non_interactive_ui_to_s_key_switch_decomposer: Some((
+        DecompostionLogBase(1),
+        DecompositionCount(49),
     )),
     g: 5,
     w: 10,
