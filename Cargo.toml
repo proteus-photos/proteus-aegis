@@ -14,10 +14,13 @@ num-traits = "0.2.18"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
 rand_distr = "0.4.3"
-num-bigint-dig = { version = "0.8.4", features = ["prime"] }
+rayon = "1.10.0"
+serde = { version = "1.0.204", features = ["derive"] }
 
 [dev-dependencies]
 criterion = "0.5.1"
+rayon = "1.10.0"
+num-bigint-dig = { version = "0.8.4", features = ["prime"] }
 
 [features]
 interactive_mp = []
@@ -59,3 +62,14 @@ required-features = ["non_interactive_mp"]
 name = "if_and_else"
 path = "./examples/if_and_else.rs"
 required-features = ["non_interactive_mp"]
+
+[[example]]
+name = "proteus_bool"
+path = "./proteus/non_interactive_fhebool.rs"
+required-features = ["non_interactive_mp"]
+
+[[bin]]
+name = "proteus_bool"
+path = "./proteus/non_interactive_fhebool.rs"
+required-features = ["non_interactive_mp"]
+
