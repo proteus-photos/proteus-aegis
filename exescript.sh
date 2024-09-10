@@ -12,7 +12,7 @@ n="$1"
 # Run n parallel instances of proteusBool
 for ((i=1; i<=n; i++)); do
     echo "Starting instance $i"
-    proteus_bool &  # Run the instance in the background
+    ./target/release/proteus_bool &  # Run the instance in the background
 done
 
 # Wait for all parallel instances to finish
