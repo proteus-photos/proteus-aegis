@@ -50,3 +50,8 @@ required-features = ["dev"]
 [[example]]
 name = "multi_party"
 required-features = ["serde", "dev"]
+
+
+[[example]]
+name = "proteus"
+required-features = ["serde", "dev"]
