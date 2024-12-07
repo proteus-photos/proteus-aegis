@@ -3,7 +3,7 @@ use itertools::{izip, Itertools};
 use phantom_zone_evaluator::boolean::{
     dev::MockBoolEvaluator,
     fhew::{
-        param::{I_4P, I_4P_60},
+        param::I_2P_60,
         prelude::*,
     },
 };
@@ -837,28 +837,24 @@ fn e2e<O: Ops>(param: Param) {
 
     fn function<E: BoolEvaluator>(
         a: &[FheBool<E>],
-        b: &[FheBool<E>],
-        c: &[FheBool<E>],
-        d: &[FheBool<E>],
+        b: &[FheBool<E>]
     ) -> Vec<FheBool<E>> {
         a.par_iter()
             .zip(b)
-            .zip(c)
-            .zip(d)
-            .map(|(((a, b), c), d)| a ^ b ^ c ^ d)
+            .map(|(a, b)| a ^ b)
             .collect()
     }
 
-    let ms: [Vec<bool>; 4] = {
+    let ms: [Vec<bool>; 2] = {
         let mut rng = StdRng::from_entropy();
-        let n = 2048;
+        let n = 128;
         from_fn(|_| repeat_with(|| rng.gen()).take(n).collect())
     };
     let out = {
-        let [a, b, c, d] = &ms
+        let [a, b] = &ms
             .clone()
             .map(|m| m.into_iter().map(|m| m.into()).collect_vec());
-        function::<MockBoolEvaluator>(a, b, c, d)
+        function::<MockBoolEvaluator>(a, b)
             .into_iter()
             .map(FheBool::into_ct)
             .collect_vec()
@@ -872,12 +868,12 @@ fn e2e<O: Ops>(param: Param) {
             })
         });
 
-        let ct_out = timed!("server: perform FHE evaluation on inputs parallelly", {
-            let [a, b, c, d] = &cts.map(|bytes| {
+        let ct_out = timed!("server: perform FHE-Bool evaluation on inputs parallelly", {
+            let [a, b] = &cts.map(|bytes| {
                 let ct = server.deserialize_batched_ct(&bytes).unwrap();
                 server.wrap_batched_ct(&ct)
             });
-            function(a, b, c, d)
+            function(a, b)
                 .into_iter()
                 .map(FheBool::into_ct)
                 .collect_vec()
@@ -991,19 +987,19 @@ fn e2e<O: Ops>(param: Param) {
 
 fn main() {
     e2e::<NativeOps>(Param {
-        param: I_4P_60,
+        param: I_2P_60,
         ring_packing_modulus: Some(Modulus::Prime(2305843009213554689)),
         ring_packing_auto_decomposition_param: DecompositionParam {
             log_base: 20,
             level: 1,
         },
     });
-    e2e::<PrimeOps>(Param {
-        param: I_4P,
-        ring_packing_modulus: None,
-        ring_packing_auto_decomposition_param: DecompositionParam {
-            log_base: 20,
-            level: 1,
-        },
-    });
+    // e2e::<PrimeOps>(Param {
+    //     param: I_4P,
+    //     ring_packing_modulus: None,
+    //     ring_packing_auto_decomposition_param: DecompositionParam {
+    //         log_base: 20,
+    //         level: 1,
+    //     },
+    // });
 }
