@@ -833,23 +833,225 @@ fn e2e<O: Ops>(param: Param) {
         )
     );
 
-    // FHE evaluation.
+    //====================================
+    // Boolean Functions 
+    //====================================
 
+    fn half_adder<E: BoolEvaluator>(
+        a: &FheBool<E>,
+        b: &FheBool<E>,
+    ) -> (FheBool<E>, FheBool<E>) {
+        let sum = a ^ b;
+        let carry = a & b;
+        (sum, carry)
+    }
+
+    fn full_adder<E: BoolEvaluator>(a: &FheBool<E>, b: &FheBool<E>, carry_in: &FheBool<E>) -> Vec<FheBool<E>> {
+        let (sum1, carry1) = half_adder(a, b);
+        let (sum2, carry2) = half_adder(&sum1, carry_in);
+        let carry_out = &carry1 | &carry2;
+        vec![sum2, carry_out]
+    }
+
+    fn two_bit_adder<E: BoolEvaluator>(
+        a: &[FheBool<E>], 
+        b: &[FheBool<E>],
+    ) -> Vec<FheBool<E>> {
+        let (sum1, carry1) = half_adder(&a[0], &b[0]);
+        let sum_carry2 = full_adder(&a[1], &b[1], &carry1);
+        vec![sum1, sum_carry2[0].clone(), sum_carry2[1].clone()]
+    }
+
+    fn three_bit_adder<E: BoolEvaluator>(
+        a: &[FheBool<E>], 
+        b: &[FheBool<E>],
+    ) -> Vec<FheBool<E>> {
+        let (sum1, carry1) = half_adder(&a[0], &b[0]);
+        let sum_carry2 = full_adder(&a[1], &b[1], &carry1);
+        let sum_carry3 = full_adder(&a[2], &b[2], &sum_carry2[1].clone());
+        vec![sum1, sum_carry2[0].clone(), sum_carry3[0].clone(), sum_carry3[1].clone()]
+    }
+
+    fn four_bit_adder<E: BoolEvaluator>(
+        a: &[FheBool<E>], 
+        b: &[FheBool<E>],
+    ) -> Vec<FheBool<E>> {
+        let (sum1, carry1) = half_adder(&a[0], &b[0]);
+        let sum_carry2 = full_adder(&a[1], &b[1], &carry1);
+        let sum_carry3 = full_adder(&a[2], &b[2], &sum_carry2[1].clone());
+        let sum_carry4 = full_adder(&a[3], &b[3], &sum_carry3[1].clone());
+        vec![sum1, sum_carry2[0].clone(), sum_carry3[0].clone(), sum_carry4[0].clone(), sum_carry4[1].clone()]
+    }
+
+    fn five_bit_adder<E: BoolEvaluator>(
+        a: &[FheBool<E>], 
+        b: &[FheBool<E>],
+    ) -> Vec<FheBool<E>> {
+        let (sum1, carry1) = half_adder(&a[0], &b[0]);
+        let sum_carry2 = full_adder(&a[1], &b[1], &carry1);
+        let sum_carry3 = full_adder(&a[2], &b[2], &sum_carry2[1].clone());
+        let sum_carry4 = full_adder(&a[3], &b[3], &sum_carry3[1].clone());
+        let sum_carry5 = full_adder(&a[4], &b[4], &sum_carry4[1].clone());
+        vec![sum1, sum_carry2[0].clone(), sum_carry3[0].clone(), sum_carry4[0].clone(), sum_carry5[0].clone(), sum_carry5[1].clone()]
+    }
+
+    fn six_bit_adder<E: BoolEvaluator>(
+        a: &[FheBool<E>], 
+        b: &[FheBool<E>],
+    ) -> Vec<FheBool<E>> {
+        let (sum1, carry1) = half_adder(&a[0], &b[0]);
+        let sum_carry2 = full_adder(&a[1], &b[1], &carry1);
+        let sum_carry3 = full_adder(&a[2], &b[2], &sum_carry2[1].clone());
+        let sum_carry4 = full_adder(&a[3], &b[3], &sum_carry3[1].clone());
+        let sum_carry5 = full_adder(&a[4], &b[4], &sum_carry4[1].clone());
+        let sum_carry6 = full_adder(&a[5], &b[5], &sum_carry5[1].clone());
+        vec![sum1, sum_carry2[0].clone(), sum_carry3[0].clone(), sum_carry4[0].clone(), sum_carry5[0].clone(), sum_carry6[0].clone(), sum_carry6[1].clone()]
+    }
+
+    //============================
+    // FHE Evalauation Function
+    //============================
     fn function<E: BoolEvaluator>(
         a: &[FheBool<E>],
-        b: &[FheBool<E>]
+        b: &[FheBool<E>],
+        // zeros: &[FheBool<E>],
     ) -> Vec<FheBool<E>> {
-        a.par_iter()
-            .zip(b)
-            .map(|(a, b)| a ^ b)
-            .collect()
+
+        // Compute the XOR array in parallel
+        let xor_array: Vec<FheBool<E>> = a
+        .par_iter()
+        .zip(b)
+        .map(|(a, b)| a ^ b)
+        .collect();
+
+        //----------------------
+        // 1st level of the tree
+        //----------------------
+        let mut hh: Vec<FheBool<E>> = xor_array[64..96].to_vec();
+        let mut ll: Vec<FheBool<E>> = xor_array[32..64].to_vec();
+        let mut cc: Vec<FheBool<E>> = xor_array[0..32].to_vec();
+
+        let mut l1_sum_carry: Vec<Vec<FheBool<E>>> = hh
+        .clone()
+        .par_iter()
+        .zip(ll.clone())
+        .zip(cc.clone())
+        .map(|((a, b), c)| full_adder(a, &b, &c))
+        .collect();
+
+        //----------------------
+        // 2nd level of the tree
+        //----------------------
+        let mut l1_sum_carry_odds: Vec<Vec<FheBool<E>>> = Vec::new();
+        let mut l1_sum_carry_evens: Vec<Vec<FheBool<E>>> = Vec::new();
+
+        for i in 0..16 {
+            l1_sum_carry_odds.push(l1_sum_carry.pop().unwrap());
+            l1_sum_carry_evens.push(l1_sum_carry.pop().unwrap());
+        }
+        
+
+        let mut l2_sum_carry: Vec<Vec<FheBool<E>>> = l1_sum_carry_odds
+        .clone()
+        .par_iter()
+        .zip(l1_sum_carry_evens.clone())
+        .map(|(a, b)| two_bit_adder(a, &b))
+        .collect();
+
+        //----------------------
+        // 3rd level of the tree
+        //----------------------
+        let mut l2_sum_carry_odds: Vec<Vec<FheBool<E>>> = Vec::new();
+        let mut l2_sum_carry_evens: Vec<Vec<FheBool<E>>> = Vec::new();
+
+        for i in 0..8 {
+            l2_sum_carry_odds.push(l2_sum_carry.pop().unwrap());
+            l2_sum_carry_evens.push(l2_sum_carry.pop().unwrap());
+        }
+        
+
+        let mut l3_sum_carry: Vec<Vec<FheBool<E>>> = l2_sum_carry_odds
+        .clone()
+        .par_iter()
+        .zip(l2_sum_carry_evens.clone())
+        .map(|(a, b)| three_bit_adder(a, &b))
+        .collect();
+
+        
+        //----------------------
+        // 4th level of the tree
+        //----------------------
+        let mut l3_sum_carry_odds: Vec<Vec<FheBool<E>>> = Vec::new();
+        let mut l3_sum_carry_evens: Vec<Vec<FheBool<E>>> = Vec::new();
+
+        for i in 0..4 {
+            l3_sum_carry_odds.push(l3_sum_carry.pop().unwrap());
+            l3_sum_carry_evens.push(l3_sum_carry.pop().unwrap());
+        }
+        
+
+        let mut l4_sum_carry: Vec<Vec<FheBool<E>>> = l3_sum_carry_odds
+        .clone()
+        .par_iter()
+        .zip(l3_sum_carry_evens.clone())
+        .map(|(a, b)| four_bit_adder(a, &b))
+        .collect();
+
+
+        //----------------------
+        // 5th level of the tree
+        //----------------------
+        let mut l4_sum_carry_odds: Vec<Vec<FheBool<E>>> = Vec::new();
+        let mut l4_sum_carry_evens: Vec<Vec<FheBool<E>>> = Vec::new();
+
+        for i in 0..2 {
+            l4_sum_carry_odds.push(l4_sum_carry.pop().unwrap());
+            l4_sum_carry_evens.push(l4_sum_carry.pop().unwrap());
+        }
+        
+
+        let mut l5_sum_carry: Vec<Vec<FheBool<E>>> = l4_sum_carry_odds
+        .clone()
+        .par_iter()
+        .zip(l4_sum_carry_evens.clone())
+        .map(|(a, b)| five_bit_adder(a, &b))
+        .collect();
+
+
+        //----------------------
+        // 6th level of the tree
+        //----------------------
+        let mut l5_sum_carry_odds: Vec<Vec<FheBool<E>>> = Vec::new();
+        let mut l5_sum_carry_evens: Vec<Vec<FheBool<E>>> = Vec::new();
+
+        
+        l5_sum_carry_odds.push(l5_sum_carry.pop().unwrap());
+        l5_sum_carry_evens.push(l5_sum_carry.pop().unwrap());
+
+        let mut l6_sum_carry: Vec<Vec<FheBool<E>>> = l5_sum_carry_odds
+        .clone()
+        .par_iter()
+        .zip(l5_sum_carry_evens.clone())
+        .map(|(a, b)| six_bit_adder(a, &b))
+        .collect();
+
+        let mut hd: Vec<FheBool<E>> = l6_sum_carry[0].to_vec();
+
+        //---------------------------------
+        // Decide whether it's close or not
+        //---------------------------------
+        let close_or_not: FheBool<E> = hd[3].clone() | hd[4].clone() | hd[5].clone() | hd[6].clone();
+
+        vec![close_or_not]
     }
 
     let ms: [Vec<bool>; 2] = {
         let mut rng = StdRng::from_entropy();
-        let n = 128;
+        let n = 96;
         from_fn(|_| repeat_with(|| rng.gen()).take(n).collect())
     };
+    // let zz : Vec<bool> = vec![false; 2];
+
     let out = {
         let [a, b] = &ms
             .clone()
@@ -868,17 +1070,29 @@ fn e2e<O: Ops>(param: Param) {
             })
         });
 
-        let ct_out = timed!("server: perform FHE-Bool evaluation on inputs parallelly", {
+        let ct_out_array = timed!("server: perform FHE-Bool evaluation on inputs parallelly", {
             let [a, b] = &cts.map(|bytes| {
                 let ct = server.deserialize_batched_ct(&bytes).unwrap();
                 server.wrap_batched_ct(&ct)
             });
-            function(a, b)
-                .into_iter()
-                .map(FheBool::into_ct)
-                .collect_vec()
+            // Parallel execution of the XOR operation 10 times
+            let results = (0..10).into_par_iter().map(|_| {
+                function(a, b)
+                    .into_iter()
+                    .map(FheBool::into_ct)
+                    .collect::<Vec<_>>() // Use collect() with type annotation
+            }).collect::<Vec<_>>();
+
+            results
+
+            // function(a, b)
+            //     .into_iter()
+            //     .map(FheBool::into_ct)
+            //     .collect_vec()
         });
 
+        // let ct_out = ct_out_array.clone();
+        let ct_out = ct_out_array[0].clone();
         // With ring packing.
 
         let rp_ct_out = timed!(
