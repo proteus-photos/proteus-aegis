@@ -927,9 +927,9 @@ fn e2e<O: Ops>(param: Param) {
         //----------------------
         // 1st level of the tree
         //----------------------
-        let mut hh: Vec<FheBool<E>> = xor_array[64..96].to_vec();
-        let mut ll: Vec<FheBool<E>> = xor_array[32..64].to_vec();
-        let mut cc: Vec<FheBool<E>> = xor_array[0..32].to_vec();
+        let hh: Vec<FheBool<E>> = xor_array[64..96].to_vec();
+        let ll: Vec<FheBool<E>> = xor_array[32..64].to_vec();
+        let cc: Vec<FheBool<E>> = xor_array[0..32].to_vec();
 
         let mut l1_sum_carry: Vec<Vec<FheBool<E>>> = hh
         .clone()
@@ -945,7 +945,7 @@ fn e2e<O: Ops>(param: Param) {
         let mut l1_sum_carry_odds: Vec<Vec<FheBool<E>>> = Vec::new();
         let mut l1_sum_carry_evens: Vec<Vec<FheBool<E>>> = Vec::new();
 
-        for i in 0..16 {
+        for _ in 0..16 {
             l1_sum_carry_odds.push(l1_sum_carry.pop().unwrap());
             l1_sum_carry_evens.push(l1_sum_carry.pop().unwrap());
         }
@@ -964,7 +964,7 @@ fn e2e<O: Ops>(param: Param) {
         let mut l2_sum_carry_odds: Vec<Vec<FheBool<E>>> = Vec::new();
         let mut l2_sum_carry_evens: Vec<Vec<FheBool<E>>> = Vec::new();
 
-        for i in 0..8 {
+        for _ in 0..8 {
             l2_sum_carry_odds.push(l2_sum_carry.pop().unwrap());
             l2_sum_carry_evens.push(l2_sum_carry.pop().unwrap());
         }
@@ -984,7 +984,7 @@ fn e2e<O: Ops>(param: Param) {
         let mut l3_sum_carry_odds: Vec<Vec<FheBool<E>>> = Vec::new();
         let mut l3_sum_carry_evens: Vec<Vec<FheBool<E>>> = Vec::new();
 
-        for i in 0..4 {
+        for _ in 0..4 {
             l3_sum_carry_odds.push(l3_sum_carry.pop().unwrap());
             l3_sum_carry_evens.push(l3_sum_carry.pop().unwrap());
         }
@@ -1004,7 +1004,7 @@ fn e2e<O: Ops>(param: Param) {
         let mut l4_sum_carry_odds: Vec<Vec<FheBool<E>>> = Vec::new();
         let mut l4_sum_carry_evens: Vec<Vec<FheBool<E>>> = Vec::new();
 
-        for i in 0..2 {
+        for _ in 0..2 {
             l4_sum_carry_odds.push(l4_sum_carry.pop().unwrap());
             l4_sum_carry_evens.push(l4_sum_carry.pop().unwrap());
         }
@@ -1028,14 +1028,14 @@ fn e2e<O: Ops>(param: Param) {
         l5_sum_carry_odds.push(l5_sum_carry.pop().unwrap());
         l5_sum_carry_evens.push(l5_sum_carry.pop().unwrap());
 
-        let mut l6_sum_carry: Vec<Vec<FheBool<E>>> = l5_sum_carry_odds
+        let l6_sum_carry: Vec<Vec<FheBool<E>>> = l5_sum_carry_odds
         .clone()
         .par_iter()
         .zip(l5_sum_carry_evens.clone())
         .map(|(a, b)| six_bit_adder(a, &b))
         .collect();
 
-        let mut hd: Vec<FheBool<E>> = l6_sum_carry[0].to_vec();
+        let hd: Vec<FheBool<E>> = l6_sum_carry[0].to_vec();
 
         //---------------------------------
         // Decide whether it's close or not
